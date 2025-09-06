@@ -164,7 +164,8 @@ always @(posedge clk) begin
     reg        hsync_r;
     reg        vsync_r;
     reg        visible_r;
-    reg        last_vsync;
+    reg        last_vsync_irq;
+    reg        last_vsync_buf;
     
     always @(posedge clk) begin
     if (!rst_n) begin
