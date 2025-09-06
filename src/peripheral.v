@@ -44,6 +44,12 @@ module tqvp_example (
     // -----------------------------
     // Register write decode
     // -----------------------------
+
+wire write_8  = (data_write_n == 2'b00);
+wire write_16 = (data_write_n == 2'b01);
+wire write_32 = (data_write_n == 2'b10);
+wire write_any = ~(&data_write_n); // anything but "11"
+    
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             control_reg <= 8'h00;
@@ -51,7 +57,7 @@ module tqvp_example (
             spr1_x <= 8'h00; spr1_y <= 8'h00;
             spr0_bmp <= 64'h0;
             spr1_bmp <= 64'h0;
-        end else if (write_en) begin
+        end else if (write_16 || write_8) begin
             case (address)
                 // control_reg (8-bit only)
                 6'h00: control_reg <= data_in[7:0];
@@ -162,21 +168,27 @@ module tqvp_example (
 
     reg pixel_on;
 
+    wire [2:0] spr0_row = ly - spr0_y; // 0..7
+    wire [2:0] spr0_col = lx - spr0_x; // 0..7
+    wire [5:0] spr0_idx = {spr0_row, spr0_col}; // row*8 + col
+    
+    wire [2:0] spr1_row = ly - spr1_y;
+    wire [2:0] spr1_col = lx - spr1_x;
+    wire [5:0] spr1_idx = {spr1_row, spr1_col};
+
     always @(*) begin
         pixel_on = 1'b0;
         if (video_active) begin
-            // sprite 0
             if (lx >= spr0_x && lx < spr0_x+8 &&
                 ly >= spr0_y && ly < spr0_y+8) begin
-                pixel_on = spr0_bmp[(ly - spr0_y)*8 + (lx - spr0_x)];
+                pixel_on = spr0_bmp[spr0_idx];
             end
-            // sprite 1
             else if (lx >= spr1_x && lx < spr1_x+8 &&
                      ly >= spr1_y && ly < spr1_y+8) begin
-                pixel_on = spr1_bmp[(ly - spr1_y)*8 + (lx - spr1_x)];
+                pixel_on = spr1_bmp[spr1_idx];
             end
         end
-    end
+   end
 
     always @(*) begin
         if (video_active && pixel_on)
