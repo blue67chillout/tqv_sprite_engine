@@ -131,10 +131,12 @@ wire write_any = ~(&data_write_n); // anything but "11"
 
     reg [10:0] h_cnt;
     reg [9:0]  v_cnt;
-
+    reg hsync ;
+    reg vsync ;
+    
     wire video_active = (h_cnt < H_ACTIVE) && (v_cnt < V_ACTIVE);
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk ) begin
         if (!rst_n) begin
             h_cnt <= 0;
             v_cnt <= 0;
