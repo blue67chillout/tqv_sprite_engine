@@ -193,77 +193,77 @@ module tqvp_example (
         end
     end
 
-   wire [9:0] pix_x = h_cnt[9:0];
-    wire [9:0] pix_y = v_cnt[9:0];
-    wire video_active = visible_r; 
-    wire [7:0] lx = pix_x[9:2];
-    wire [7:0] ly = pix_y[9:2];
+    // wire [9:0] pix_x = h_cnt[9:0];
+    // wire [9:0] pix_y = v_cnt[9:0];
+    // wire video_active = visible_r; 
+    // wire [7:0] lx = pix_x[9:2];
+    // wire [7:0] ly = pix_y[9:2];
 
-    // -- Sprite 0 non-flip
-wire s0_in           = (lx >= spr0_x) && (lx < spr0_x+12) && (ly >= spr0_y) && (ly < spr0_y+12);
-wire [3:0] s0_col    = lx - spr0_x;
-wire [3:0] s0_row    = ly - spr0_y;
-wire [7:0] s0_idx_nf = {s0_row, s0_col}; // non-flip index
-wire s0_pixel_nf     = video_active && s0_in && !spr0_ctrl[2] && spr0_bmp[s0_idx_nf];
-
-// -- Sprite 0 flip & mirror (if enabled)
-wire s0_flip         = spr0_ctrl[2];
-wire s0_in_flip      = s0_flip && s0_in;
-wire [3:0] s0_col_f  = 11 - (lx - spr0_x);
-wire [7:0] s0_idx_f  = {s0_row, s0_col_f};
-wire s0_pixel_f      = video_active && s0_in_flip && spr0_bmp[s0_idx_f];
-
-// -- Sprite 0 mirror (shows at x+12 when flip enabled)
-wire s0_m_in         = (lx >= spr0_x+12) && (lx < spr0_x+24) && (ly >= spr0_y) && (ly < spr0_y+12);
-wire [3:0] s0_m_col  = lx - (spr0_x+12);
-wire [7:0] s0_m_idx_nf = {s0_row, s0_m_col};
-wire [3:0] s0_m_col_f  = 11 - s0_m_col;
-wire [7:0] s0_m_idx_f  = {s0_row, s0_m_col_f};
-wire s0_m_pixel_nf  = video_active && s0_m_in && !spr0_ctrl[2] && spr0_bmp[s0_m_idx_nf];
-wire s0_m_pixel_f   = video_active && s0_m_in && s0_flip && spr0_bmp[s0_m_idx_f];
-
-// Combine sprite 0 result (flip, non-flip, mirror)
-wire s0_pixel      = s0_pixel_nf || s0_pixel_f;
-wire s0_m_pixel    = s0_m_pixel_nf || s0_m_pixel_f;
-
-// -- Sprite 1 non-flip
-wire s1_in           = (lx >= spr1_x) && (lx < spr1_x+12) && (ly >= spr1_y) && (ly < spr1_y+12);
-wire [3:0] s1_col    = lx - spr1_x;
-wire [3:0] s1_row    = ly - spr1_y;
-wire [7:0] s1_idx_nf = {s1_row, s1_col}; // non-flip index
-wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl[2] && spr1_bmp[s1_idx_nf];
-
-// -- Sprite 1 flip & mirror (if enabled)
-wire s1_flip         = spr1_ctrl[2];
-wire s1_in_flip      = s1_flip && s1_in;
-wire [3:0] s1_col_f  = 11 - (lx - spr1_x);
-wire [7:0] s1_idx_f  = {s1_row, s1_col_f};
-wire s1_pixel_f      = video_active && s1_in_flip && spr1_bmp[s1_idx_f];
-
-// -- Sprite 1 mirror (shows at x+12 when flip enabled)
-wire s1_m_in         = (lx >= spr1_x+12) && (lx < spr1_x+24) && (ly >= spr1_y) && (ly < spr1_y+12);
-wire [3:0] s1_m_col  = lx - (spr1_x+12);
-wire [7:0] s1_m_idx_nf = {s1_row, s1_m_col};
-wire [3:0] s1_m_col_f  = 11 - s1_m_col;
-wire [7:0] s1_m_idx_f  = {s1_row, s1_m_col_f};
-wire s1_m_pixel_nf  = video_active && s1_m_in && !spr1_ctrl[2] && spr1_bmp[s1_m_idx_nf];
-wire s1_m_pixel_f   = video_active && s1_m_in && s1_flip && spr1_bmp[s1_m_idx_f];
-
-// Combine sprite 1 result (flip, non-flip, mirror)
-wire s1_pixel      = s1_pixel_nf || s1_pixel_f;
-wire s1_m_pixel    = s1_m_pixel_nf || s1_m_pixel_f;
-
-// -- Palette/color select
-wire [5:0] s0_rgb = get_palette(spr0_ctrl[1:0]);
-wire [5:0] s1_rgb = get_palette(spr1_ctrl[1:0]);
-
-// -- Output composition, priority: s1 > s0 > mirror0 background
-wire [5:0] final_rgb =
-      s1_pixel     ? s1_rgb :
-      s1_m_pixel   ? s1_rgb :
-      s0_pixel     ? s0_rgb :
-      s0_m_pixel   ? s0_rgb :
-                    6'b000000;
+    // // -- Sprite 0 non-flip
+    // wire s0_in           = (lx >= spr0_x) && (lx < spr0_x+12) && (ly >= spr0_y) && (ly < spr0_y+12);
+    // wire [3:0] s0_col    = lx - spr0_x;
+    // wire [3:0] s0_row    = ly - spr0_y;
+    // wire [7:0] s0_idx_nf = {s0_row, s0_col}; // non-flip index
+    // wire s0_pixel_nf     = video_active && s0_in && !spr0_ctrl[2] && spr0_bmp[s0_idx_nf];
+    
+    // // -- Sprite 0 flip & mirror (if enabled)
+    // wire s0_flip         = spr0_ctrl[2];
+    // wire s0_in_flip      = s0_flip && s0_in;
+    // wire [3:0] s0_col_f  = 11 - (lx - spr0_x);
+    // wire [7:0] s0_idx_f  = {s0_row, s0_col_f};
+    // wire s0_pixel_f      = video_active && s0_in_flip && spr0_bmp[s0_idx_f];
+    
+    // // -- Sprite 0 mirror (shows at x+12 when flip enabled)
+    // wire s0_m_in         = (lx >= spr0_x+12) && (lx < spr0_x+24) && (ly >= spr0_y) && (ly < spr0_y+12);
+    // wire [3:0] s0_m_col  = lx - (spr0_x+12);
+    // wire [7:0] s0_m_idx_nf = {s0_row, s0_m_col};
+    // wire [3:0] s0_m_col_f  = 11 - s0_m_col;
+    // wire [7:0] s0_m_idx_f  = {s0_row, s0_m_col_f};
+    // wire s0_m_pixel_nf  = video_active && s0_m_in && !spr0_ctrl[2] && spr0_bmp[s0_m_idx_nf];
+    // wire s0_m_pixel_f   = video_active && s0_m_in && s0_flip && spr0_bmp[s0_m_idx_f];
+    
+    // // Combine sprite 0 result (flip, non-flip, mirror)
+    // wire s0_pixel      = s0_pixel_nf || s0_pixel_f;
+    // wire s0_m_pixel    = s0_m_pixel_nf || s0_m_pixel_f;
+    
+    // // -- Sprite 1 non-flip
+    // wire s1_in           = (lx >= spr1_x) && (lx < spr1_x+12) && (ly >= spr1_y) && (ly < spr1_y+12);
+    // wire [3:0] s1_col    = lx - spr1_x;
+    // wire [3:0] s1_row    = ly - spr1_y;
+    // wire [7:0] s1_idx_nf = {s1_row, s1_col}; // non-flip index
+    // wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl[2] && spr1_bmp[s1_idx_nf];
+    
+    // // -- Sprite 1 flip & mirror (if enabled)
+    // wire s1_flip         = spr1_ctrl[2];
+    // wire s1_in_flip      = s1_flip && s1_in;
+    // wire [3:0] s1_col_f  = 11 - (lx - spr1_x);
+    // wire [7:0] s1_idx_f  = {s1_row, s1_col_f};
+    // wire s1_pixel_f      = video_active && s1_in_flip && spr1_bmp[s1_idx_f];
+    
+    // // -- Sprite 1 mirror (shows at x+12 when flip enabled)
+    // wire s1_m_in         = (lx >= spr1_x+12) && (lx < spr1_x+24) && (ly >= spr1_y) && (ly < spr1_y+12);
+    // wire [3:0] s1_m_col  = lx - (spr1_x+12);
+    // wire [7:0] s1_m_idx_nf = {s1_row, s1_m_col};
+    // wire [3:0] s1_m_col_f  = 11 - s1_m_col;
+    // wire [7:0] s1_m_idx_f  = {s1_row, s1_m_col_f};
+    // wire s1_m_pixel_nf  = video_active && s1_m_in && !spr1_ctrl[2] && spr1_bmp[s1_m_idx_nf];
+    // wire s1_m_pixel_f   = video_active && s1_m_in && s1_flip && spr1_bmp[s1_m_idx_f];
+    
+    // // Combine sprite 1 result (flip, non-flip, mirror)
+    // wire s1_pixel      = s1_pixel_nf || s1_pixel_f;
+    // wire s1_m_pixel    = s1_m_pixel_nf || s1_m_pixel_f;
+    
+    // // -- Palette/color select
+    // wire [5:0] s0_rgb = get_palette(spr0_ctrl[1:0]);
+    // wire [5:0] s1_rgb = get_palette(spr1_ctrl[1:0]);
+    
+    // // -- Output composition, priority: s1 > s0 > mirror0 background
+    // wire [5:0] final_rgb =
+    //       s1_pixel     ? s1_rgb :
+    //       s1_m_pixel   ? s1_rgb :
+    //       s0_pixel     ? s0_rgb :
+    //       s0_m_pixel   ? s0_rgb :
+    //                     6'b000000;
 
     assign user_interrupt = irq_flag;
     wire _unused_ok = &{1'b0, ui_in, data_read_n};
