@@ -25,7 +25,7 @@ module tqvp_example (
     input [1:0]   data_write_n, // 11 = no write, 00 = 8-bits, 01 = 16-bits, 10 = 32-bits
     input [1:0]   data_read_n,  // 11 = no read,  00 = 8-bits, 01 = 16-bits, 10 = 32-bits
     
-    output [31:0] data_out,     // Data out from the peripheral, bottom 8, 16 or all 32 bits are valid on read when data_ready is high.
+    output reg [31:0] data_out,     // Data out from the peripheral, bottom 8, 16 or all 32 bits are valid on read when data_ready is high.
     output        data_ready,
 
     output        user_interrupt  // Dedicated interrupt request for this peripheral
@@ -124,34 +124,28 @@ module tqvp_example (
     // control read should reflect irq_flag in bit2
     // others return lower 16 bits valid
     // -----------------------------
-    always @(*) begin
-        case (address)
-            6'h00: begin
-                // construct readable control byte with irq_flag reflected into bit2
-                data_out = 32'h0;
-                data_out[7:0] = { control_reg[7:3], irq_flag, control_reg[1:0] };
-            end
+    // -----------------------------
+// Register readback
+// -----------------------------
+always @(*) begin
+    case (address)
+        6'h00: data_out = {24'h0, control_reg};
 
-            6'h04: begin
-                data_out = 32'h0;
-                data_out[15:0] = { spr0_y, spr0_x }; // high byte = y, low byte = x
-            end
+        6'h04: data_out = {16'h0, spr0_y, spr0_x};
+        6'h06: data_out = {16'h0, spr0_bmp[15:0]};
+        6'h08: data_out = {16'h0, spr0_bmp[31:16]};
+        6'h0A: data_out = {16'h0, spr0_bmp[47:32]};
+        6'h0C: data_out = {16'h0, spr0_bmp[63:48]};
 
-            6'h06: begin data_out = {16'h0, spr0_bmp[15:0]}; end
-            6'h08: begin data_out = {16'h0, spr0_bmp[31:16]}; end
-            6'h0A: begin data_out = {16'h0, spr0_bmp[47:32]}; end
-            6'h0C: begin data_out = {16'h0, spr0_bmp[63:48]}; end
+        6'h0E: data_out = {16'h0, spr1_y, spr1_x};
+        6'h10: data_out = {16'h0, spr1_bmp[15:0]};
+        6'h12: data_out = {16'h0, spr1_bmp[31:16]};
+        6'h14: data_out = {16'h0, spr1_bmp[47:32]};
+        6'h16: data_out = {16'h0, spr1_bmp[63:48]};
 
-            6'h0E: begin data_out = 32'h0; data_out[15:0] = { spr1_y, spr1_x }; end
-
-            6'h10: begin data_out = {16'h0, spr1_bmp[15:0]}; end
-            6'h12: begin data_out = {16'h0, spr1_bmp[31:16]}; end
-            6'h14: begin data_out = {16'h0, spr1_bmp[47:32]}; end
-            6'h16: begin data_out = {16'h0, spr1_bmp[63:48]}; end
-
-            default: data_out = 32'h0;
-        endcase
-    end
+        default: data_out = 32'h0;
+    endcase
+end
 
     // -----------------------------
     // XGA Timing (1024x768 @60) — gated by stream_enable (control_reg[0])
@@ -247,25 +241,15 @@ module tqvp_example (
     wire spr0_in = (lx >= spr0_x) && (lx < (spr0_x + 8)) && (ly >= spr0_y) && (ly < (spr0_y + 8));
     wire spr1_in = (lx >= spr1_x) && (lx < (spr1_x + 8)) && (ly >= spr1_y) && (ly < (spr1_y + 8));
 
-    reg pixel_on;
-    always @(*) begin
-        pixel_on = 1'b0;
-        if (video_active) begin
-            // sprite1 has priority over sprite0; check sprite1 first
-            if (spr1_in) begin
-                pixel_on = spr1_bmp[spr1_idx];
-            end else if (spr0_in) begin
-                pixel_on = spr0_bmp[spr0_idx];
-            end
-        end
-    end
 
-    // color levels: sprite1 -> full (11), sprite0 -> mid (10). We simplified to single pixel_on:
-    // to keep the earlier intensity difference we'd need per-sprite detection; do that now:
+    // Sprite pixel detection with priority
     wire spr1_pixel = video_active && spr1_in && spr1_bmp[spr1_idx];
-    wire spr0_pixel = video_active && (~spr1_pixel) && spr0_in && spr0_bmp[spr0_idx];
-
-    wire [1:0] color_lv = spr1_pixel ? 2'b11 : (spr0_pixel ? 2'b10 : 2'b00);
+    wire spr0_pixel = video_active && ~spr1_pixel && spr0_in && spr0_bmp[spr0_idx];
+    
+    // Assign 2-bit color levels: 00=black, 10=sprite0, 11=sprite1
+    wire [1:0] color_lv = spr1_pixel ? 2'b11 :
+                          spr0_pixel ? 2'b10 :
+                                       2'b00;
 
     wire [1:0] R = color_lv;
     wire [1:0] G = color_lv;
