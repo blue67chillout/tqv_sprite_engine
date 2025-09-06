@@ -49,56 +49,55 @@ module tqvp_example (
 // Sprite registers for shadow/write
 reg [7:0] spr0_xw, spr0_yw, spr1_xw, spr1_yw;
 
-// Write shadow registers
 always @(posedge clk) begin
-    if (!rst_n) begin
-        control_reg <= 3'd0;
-        spr0_ctrl <= 3'd0;
-        spr1_ctrl <= 3'd0;
-        spr0_xw <= 8'd0; spr0_yw <= 8'd0;
-        spr1_xw <= 8'd0; spr1_yw <= 8'd0;
-        spr0_bmp <= 144'd0;
-        spr1_bmp <= 144'd0;
-    end else begin
-        if (write_any && (address == 6'h00))
-            control_reg[2:0] <= data_in[2:0];
-        if (write_any && (address == 6'h01))
-            spr0_ctrl <= data_in[2:0];
-        if (write_any && (address == 6'h02))
-            spr1_ctrl <= data_in[2:0];
-        if (!control_reg[0] && write_16) begin
-            case (address)
-                6'h04: begin
-                    spr0_xw <= data_in[7:0];
-                    spr0_yw <= data_in[15:8];
-                end
-                6'h06: spr0_bmp[15:0]    <= data_in[15:0];
-                6'h08: spr0_bmp[31:16]   <= data_in[15:0];
-                6'h0A: spr0_bmp[47:32]   <= data_in[15:0];
-                6'h0C: spr0_bmp[63:48]   <= data_in[15:0];
-                6'h0E: spr0_bmp[79:64]   <= data_in[15:0];
-                6'h10: spr0_bmp[95:80]   <= data_in[15:0];
-                6'h12: spr0_bmp[111:96]  <= data_in[15:0];
-                6'h14: spr0_bmp[127:112] <= data_in[15:0];
-                6'h16: spr0_bmp[143:128] <= data_in[15:0];
-                6'h1A: begin
-                    spr1_xw <= data_in[7:0];
-                    spr1_yw <= data_in[15:8];
-                end
-                6'h1C: spr1_bmp[15:0]    <= data_in[15:0];
-                6'h1E: spr1_bmp[31:16]   <= data_in[15:0];
-                6'h20: spr1_bmp[47:32]   <= data_in[15:0];
-                6'h22: spr1_bmp[63:48]   <= data_in[15:0];
-                6'h24: spr1_bmp[79:64]   <= data_in[15:0];
-                6'h26: spr1_bmp[95:80]   <= data_in[15:0];
-                6'h28: spr1_bmp[111:96]  <= data_in[15:0];
-                6'h2A: spr1_bmp[127:112] <= data_in[15:0];
-                6'h2C: spr1_bmp[143:128] <= data_in[15:0];
-                default: ;
-            endcase
+        if (!rst_n) begin
+            control_reg      <= 3'd0;
+            spr0_ctrl        <= 3'd0;
+            spr1_ctrl        <= 3'd0;
+            spr0_xw <= 8'd0; spr0_yw <= 8'd0;
+            spr1_xw <= 8'd0; spr1_yw <= 8'd0;
+            spr0_bmp <= 144'd0;
+            spr1_bmp <= 144'd0;
+        end else begin
+            if (write_any && (address == 6'h00))
+                control_reg <= data_in[2:0];
+            if (write_any && (address == 6'h01))
+                spr0_ctrl <= data_in[2:0];
+            if (write_any && (address == 6'h02))
+                spr1_ctrl <= data_in[2:0];
+            if (!control_reg[0] && write_16) begin
+                case (address)
+                    6'h04: begin
+                        spr0_xw <= data_in[7:0];
+                        spr0_yw <= data_in[15:8];
+                    end
+                    6'h06: spr0_bmp[15:0]    <= data_in[15:0];
+                    6'h08: spr0_bmp[31:16]   <= data_in[15:0];
+                    6'h0A: spr0_bmp[47:32]   <= data_in[15:0];
+                    6'h0C: spr0_bmp[63:48]   <= data_in[15:0];
+                    6'h0E: spr0_bmp[79:64]   <= data_in[15:0];
+                    6'h10: spr0_bmp[95:80]   <= data_in[15:0];
+                    6'h12: spr0_bmp[111:96]  <= data_in[15:0];
+                    6'h14: spr0_bmp[127:112] <= data_in[15:0];
+                    6'h16: spr0_bmp[143:128] <= data_in[15:0];
+                    6'h1A: begin
+                        spr1_xw <= data_in[7:0];
+                        spr1_yw <= data_in[15:8];
+                    end
+                    6'h1C: spr1_bmp[15:0]    <= data_in[15:0];
+                    6'h1E: spr1_bmp[31:16]   <= data_in[15:0];
+                    6'h20: spr1_bmp[47:32]   <= data_in[15:0];
+                    6'h22: spr1_bmp[63:48]   <= data_in[15:0];
+                    6'h24: spr1_bmp[79:64]   <= data_in[15:0];
+                    6'h26: spr1_bmp[95:80]   <= data_in[15:0];
+                    6'h28: spr1_bmp[111:96]  <= data_in[15:0];
+                    6'h2A: spr1_bmp[127:112] <= data_in[15:0];
+                    6'h2C: spr1_bmp[143:128] <= data_in[15:0];
+                    default: ;
+                endcase
+            end
         end
     end
-end
 
     // Register Readback
     always @(*) begin
@@ -166,46 +165,63 @@ end
     reg        vsync_r;
     reg        visible_r;
     reg        last_vsync;
-    always @(posedge clk ) begin
-        if (!rst_n) begin
-            h_cnt <= 11'd0;
-            v_cnt <= 10'd0;
-            hsync_r <= 1'b0;
-            vsync_r <= 1'b0;
-            visible_r <= 1'b0;
-            last_vsync <= 1'b0;
-            irq_flag <= 1'b0 ;
+    
+    always @(posedge clk) begin
+    if (!rst_n) begin
+        // Timing/logical frame
+        h_cnt         <= 0;
+        v_cnt         <= 0;
+        hsync_r       <= 0;
+        vsync_r       <= 0;
+        visible_r     <= 0;
+
+        // Sprite coordinate buffer (visible on-screen position)
+        spr0_x        <= 8'd0; 
+        spr0_y        <= 8'd0;
+        spr1_x        <= 8'd0;
+        spr1_y        <= 8'd0;
+
+        // VSYNC edge detection for buffering and IRQ
+        last_vsync_buf <= 1'b0;
+        last_vsync_irq <= 1'b0;
+
+        // Interrupt logic
+        irq_flag      <= 1'b0;
+    end else begin
+        // --- XGA TIMING ---
+        if (control_reg[0]) begin
+            if (h_cnt == H_TOTAL - 1) begin
+                h_cnt <= 0;
+                if (v_cnt == V_TOTAL - 1) v_cnt <= 0;
+                else v_cnt <= v_cnt + 1;
+            end else h_cnt <= h_cnt + 1;
+            hsync_r   <= (h_cnt >= (H_ACTIVE+H_FP)) && (h_cnt < (H_ACTIVE+H_FP+H_SYNC));
+            vsync_r   <= (v_cnt >= (V_ACTIVE+V_FP)) && (v_cnt < (V_ACTIVE+V_FP+V_SYNC));
+            visible_r <= (h_cnt < H_ACTIVE) && (v_cnt < V_ACTIVE);
         end else begin
-            if (control_reg[0]) begin
-                if (h_cnt == H_TOTAL - 1) begin
-                    h_cnt <= 11'd0;
-                    if (v_cnt == V_TOTAL - 1)
-                        v_cnt <= 10'd0;
-                    else
-                        v_cnt <= v_cnt + 10'd1;
-                end else begin
-                    h_cnt <= h_cnt + 11'd1;
-                end
-                hsync_r <= (h_cnt >= (H_ACTIVE + H_FP)) && (h_cnt < (H_ACTIVE + H_FP + H_SYNC));
-                vsync_r <= (v_cnt >= (V_ACTIVE + V_FP)) && (v_cnt < (V_ACTIVE + V_FP + V_SYNC));
-                visible_r <= (h_cnt < H_ACTIVE) && (v_cnt < V_ACTIVE);
-            end else begin
-                // streaming disabled: keep counters frozen and blank outputs
-                hsync_r <= 1'b0;
-                vsync_r <= 1'b0;
-                visible_r <= 1'b0;
-            end
-            //VSYNC rising detection - set irq_flag if irq enabled
-            if (control_reg[1] && (!last_vsync) && vsync_r) begin
-                    irq_flag <= 1'b1;
-                if (control_reg[2]) begin
-                    irq_flag <= 1'b0 ;
-                end
-            end
-            
-            last_vsync <= vsync_r;
+            hsync_r   <= 0;
+            vsync_r   <= 0;
+            visible_r <= 0;
         end
+
+        // --- SPRITE POSITION BUFFERING AT VSYNC RISING EDGE ---
+        last_vsync_buf <= vsync_r;
+        if (~last_vsync_buf && vsync_r) begin
+            spr0_x <= spr0_xw;
+            spr0_y <= spr0_yw;
+            spr1_x <= spr1_xw;
+            spr1_y <= spr1_yw;
+        end
+
+        // --- INTERRUPT LOGIC ---
+        last_vsync_irq <= vsync_r;
+        if (~last_vsync_irq && vsync_r && control_reg[1])
+            irq_flag <= 1'b1;
+        // Clear IRQ: W1C via write to control with bit2
+        if (write_any && (address == 6'h00) && data_in[2])
+            irq_flag <= 1'b0;
     end
+end
 
     wire [9:0] pix_x = h_cnt[9:0];
     wire [9:0] pix_y = v_cnt[9:0];
