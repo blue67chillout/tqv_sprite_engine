@@ -279,6 +279,8 @@ end
           s0_m_pixel   ? s0_rgb :
                         6'b000000;
 
+    assign uo_out = {vsync_r, hsync_r, final_rgb};
+
     assign user_interrupt = irq_flag;
     wire _unused_ok = &{1'b0, ui_in, data_read_n};
 
