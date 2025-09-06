@@ -60,7 +60,7 @@ module tqvp_example (
     // CONTROL (addr 0x00) low byte writable any time
     // Other regs: expect 16-bit writes at base addresses; config writes blocked when streaming active
     // -----------------------------
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk ) begin
         if (!rst_n) begin
             control_reg <= 8'h00;
             irq_flag    <= 1'b0;
@@ -157,7 +157,7 @@ module tqvp_example (
     reg        visible_r;
     reg        last_vsync;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk ) begin
         if (!rst_n) begin
             h_cnt <= 11'd0;
             v_cnt <= 10'd0;
