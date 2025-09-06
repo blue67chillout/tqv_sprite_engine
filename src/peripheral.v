@@ -236,6 +236,6 @@ module tqvp_example (
     assign user_interrupt = irq_flag;
 
     // tie off truly-unused inputs so lint is quieter (we reference them in _unused)
-    wire _unused = &{ ui_in, data_read_n[1], data_in[31:16], write_8, write_32 };
+    wire _unused_ok = &{ 1'b0, ui_in, data_read_n, data_write_n };
 
 endmodule
