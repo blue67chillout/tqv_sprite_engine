@@ -130,22 +130,22 @@ end
         endcase
     end
 
-    // --- Palette Table: 4 entries × (R,G,B) 2b each
-    // localparam [23:0] PALETTE = {
-    //   6'b11_11_11, // white
-    //   6'b11_00_00, // red
-    //   6'b00_11_00, // green
-    //   6'b00_00_11  // blue
-    // };
+    //--- Palette Table: 4 entries × (R,G,B) 2b each
+    localparam [23:0] PALETTE = {
+      6'b11_11_11, // white
+      6'b11_00_00, // red
+      6'b00_11_00, // green
+      6'b00_00_11  // blue
+    };
 
-    // function [5:0] get_palette(input [1:0] sel);
-    //     case(sel)
-    //         2'd0: get_palette = PALETTE[5:0];
-    //         2'd1: get_palette = PALETTE[11:6];
-    //         2'd2: get_palette = PALETTE[17:12];
-    //         2'd3: get_palette = PALETTE[23:18];
-    //     endcase
-    // endfunction
+    function [5:0] get_palette(input [1:0] sel);
+        case(sel)
+            2'd0: get_palette = PALETTE[5:0];
+            2'd1: get_palette = PALETTE[11:6];
+            2'd2: get_palette = PALETTE[17:12];
+            2'd3: get_palette = PALETTE[23:18];
+        endcase
+    endfunction
 
     // -----------------------------
     // XGA Timing (1024x768 @60), gated by control_reg[0] (stream enable)
