@@ -52,8 +52,8 @@ reg [7:0] spr0_xw, spr0_yw, spr1_xw, spr1_yw;
 always @(posedge clk) begin
         if (!rst_n) begin
             control_reg      <= 3'd0;
-            spr0_ctrl        <= 3'd0;
-            spr1_ctrl        <= 3'd0;
+            spr0_ctrl        <= 1'd0;
+            spr1_ctrl        <= 1'd0;
             spr0_xw <= 8'd0; spr0_yw <= 8'd0;
             spr1_xw <= 8'd0; spr1_yw <= 8'd0;
             spr0_bmp <= 144'd0;
@@ -262,7 +262,7 @@ end
     wire [3:0] s1_col    = lx - spr1_x;
     wire [3:0] s1_row    = ly - spr1_y;
     wire [7:0] s1_idx_nf = {s1_row, s1_col}; // non-flip index
-    wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl[2] && spr1_bmp[s1_idx_nf];
+    wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl && spr1_bmp[s1_idx_nf];
     
     // -- Sprite 1 flip & mirror (if enabled)
     wire s1_flip         = spr1_ctrl;
@@ -277,7 +277,7 @@ end
     wire [7:0] s1_m_idx_nf = {s1_row, s1_m_col};
     wire [3:0] s1_m_col_f  = 11 - s1_m_col;
     wire [7:0] s1_m_idx_f  = {s1_row, s1_m_col_f};
-    wire s1_m_pixel_nf  = video_active && s1_m_in && !spr1_ctrl[2] && spr1_bmp[s1_m_idx_nf];
+    wire s1_m_pixel_nf  = video_active && s1_m_in && !spr1_ctrl && spr1_bmp[s1_m_idx_nf];
     wire s1_m_pixel_f   = video_active && s1_m_in && s1_flip && spr1_bmp[s1_m_idx_f];
     
     // Combine sprite 1 result (flip, non-flip, mirror)
