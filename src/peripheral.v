@@ -72,8 +72,8 @@ module tqvp_example (
         end else begin
             // CONTROL at address 0x00: low byte used; allow clearing IRQ by writing bit2=1
             if (write_any && (address == 6'h00)) begin
-                control_reg[1:0] <= data_in[1:0]; // keep only bits 0..1 writable here
-                if (data_in[2]) irq_flag <= 1'b0; // W1C
+                control_reg[2:0] <= data_in[2:0]; // keep only bits 0..1 writable here
+                // if (data_in[2]) irq_flag <= 1'b0; // W1C
             end
 
             // Only accept config writes when not streaming (control_reg[0]==0)
@@ -188,8 +188,12 @@ module tqvp_example (
 
             // VSYNC rising detection - set irq_flag if irq enabled
             if (control_reg[1] && (!last_vsync) && vsync_r) begin
-                irq_flag <= 1'b1;
+                    irq_flag <= 1'b1;
+                if (control_reg[2]) begin
+                    irq_flag <= 1'b0 ;
+                end
             end
+            
             last_vsync <= vsync_r;
         end
     end
