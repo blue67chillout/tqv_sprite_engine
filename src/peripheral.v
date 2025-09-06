@@ -71,6 +71,7 @@ module tqvp_example (
             spr1_bmp <= 64'h0;
         end else begin
             control_reg <= 8'd0 ;
+            irq_flag <= 0 ;
             // CONTROL at address 0x00: low byte used; allow clearing IRQ by writing bit2=1
             if (write_any && (address == 6'h00)) begin
                 control_reg[2:0] <= data_in[2:0]; // keep only bits 0..1 writable here
