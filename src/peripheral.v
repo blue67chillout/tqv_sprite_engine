@@ -193,6 +193,12 @@ module tqvp_example (
         end
     end
 
+   wire [9:0] pix_x = h_cnt[9:0];
+    wire [9:0] pix_y = v_cnt[9:0];
+    wire video_active = visible_r; 
+    wire [7:0] lx = pix_x[9:2];
+    wire [7:0] ly = pix_y[9:2];
+
     // -- Sprite 0 non-flip
 wire s0_in           = (lx >= spr0_x) && (lx < spr0_x+12) && (ly >= spr0_y) && (ly < spr0_y+12);
 wire [3:0] s0_col    = lx - spr0_x;
