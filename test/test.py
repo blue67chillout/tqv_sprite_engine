@@ -1,77 +1,126 @@
 # SPDX-FileCopyrightText: © 2025 Tiny Tapeout
 # SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
-
+from cocotb.triggers import ClockCycles, RisingEdge
 from tqv import TinyQV
 
-# When submitting your design, change this to the peripheral number
-# in peripherals.v.  e.g. if your design is i_user_peri05, set this to 5.
-# The peripheral number is not used by the test harness.
 PERIPHERAL_NUM = 0
+
+def xga_pix(row, col, scale=4):
+    # Returns all logical (h,v) positions covered by a single sprite pixel at (row,col), scaled up.
+    px = []
+    for y in range(row*scale, (row+1)*scale):
+        for x in range(col*scale, (col+1)*scale):
+            px.append((y, x))
+    return px
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start")
+    dut._log.info("Starting testbench for dual 8x8 sprite XGA peripheral.")
 
-    # Set the clock period to 100 ns (10 MHz)
-    clock = Clock(dut.clk, 100, units="ns")
+    clock = Clock(dut.clk, 10, units="ns")  # 100 MHz - adjust if needed
     cocotb.start_soon(clock.start())
 
-    # Interact with your design's registers through this TinyQV class.
-    # This will allow the same test to be run when your design is integrated
-    # with TinyQV - the implementation of this class will be replaces with a
-    # different version that uses Risc-V instructions instead of the SPI test
-    # harness interface to read and write the registers.
     tqv = TinyQV(dut, PERIPHERAL_NUM)
 
-    # Reset
+    # --- Reset and idle state ---
     await tqv.reset()
+    await ClockCycles(dut.clk, 5)
+    assert (await tqv.read_word_reg(0)) == 0  # control reg
 
-    dut._log.info("Test project behavior")
+    # === Test register writes and reads ===
+    await tqv.write_word_reg(0x00, 0x00000001)     # enable stream
+    await tqv.write_byte_reg(0x01, 0b0)           # spr0_ctrl: no flip
+    await tqv.write_byte_reg(0x02, 0b0)           # spr1_ctrl: no flip
 
-    # Test register write and read back
-    await tqv.write_word_reg(0, 0x82345678)
-    assert await tqv.read_byte_reg(0) == 0x78
-    assert await tqv.read_hword_reg(0) == 0x5678
-    assert await tqv.read_word_reg(0) == 0x82345678
+    # Sprite0: place at (20,45). Sprite1: at (30,80).
+    await tqv.write_hword_reg(0x04, (20<<8)|45)   # spr0_y,spr0_x
+    await tqv.write_hword_reg(0x10, (30<<8)|80)   # spr1_y,spr1_x
 
-    # Set an input value, in the example this will be added to the register value
-    dut.ui_in.value = 30
+    # Sprite0: write a plus in bits [4, 28, 32] (center, up, left)
+    plus = 0
+    plus |= (1 << (3*8 + 3))  # pixel at row=3, col=3 (center)
+    plus |= (1 << (0*8 + 3))  # up
+    plus |= (1 << (3*8 + 0))  # left
+    await tqv.write_hword_reg(0x06, plus & 0xFFFF)
+    await tqv.write_hword_reg(0x08, (plus >> 16) & 0xFFFF)
+    await tqv.write_hword_reg(0x0A, (plus >> 32) & 0xFFFF)
+    await tqv.write_hword_reg(0x0C, (plus >> 48) & 0xFFFF)
 
-    # Wait for two clock cycles to see the output values, because ui_in is synchronized over two clocks,
-    # and a further clock is required for the output to propagate.
-    await ClockCycles(dut.clk, 3)
+    # Sprite1: a single dot at (4,6)
+    dot = 1 << (4*8 + 6)
+    await tqv.write_hword_reg(0x12, dot & 0xFFFF)
+    await tqv.write_hword_reg(0x14, (dot >> 16) & 0xFFFF)
+    await tqv.write_hword_reg(0x16, (dot >> 32) & 0xFFFF)
+    await tqv.write_hword_reg(0x18, (dot >> 48) & 0xFFFF)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 0x96
+    # === Wait for VSYNC to register buffered sprite positions ===
+    # At minimum, need one XGA frame, which is about 1344*806 clk cycles.
+    await ClockCycles(dut.clk, 1344*10)  # cover at least 10 lines
 
-    # Input value should be read back from register 1
-    assert await tqv.read_byte_reg(4) == 30
+    # === Verify sprite placement for plus (Sprite 0) ===
+    # You'll likely want a pixel sample from the output during a time when the
+    # scaled position equals the target.
+    scale = 4
+    center_sy = 20 * scale + 3 * scale
+    center_sx = 45 * scale + 3 * scale
+    # hsync/vsync are not strictly needed for data but you could mask for output
 
-    # Zero should be read back from register 2
-    assert await tqv.read_word_reg(8) == 0
+    found = False
+    # We'll scan one frame for the expected pattern
+    for _ in range(1344 * 806):
+        await RisingEdge(dut.clk)
+        # Decode PMOD output (uo_out): top 2 bits are sync, rest is "pixel"
+        rgb = dut.uo_out.value.integer & 0x3F
+        # You're outputting white for set pixels
+        if rgb == 0x3F:
+            # Clock counters recovered from your DUT
+            h = dut.h_cnt.value.integer
+            v = dut.v_cnt.value.integer
+            # Only check sprite center
+            if v in range(center_sy, center_sy+scale) and h in range(center_sx, center_sx+scale):
+                found = True
+                break
+    assert found, "Sprite 0 plus center not rendered at expected XGA location!"
 
-    # A second write should work
-    await tqv.write_word_reg(0, 40)
-    assert dut.uo_out.value == 70
+    # === Test flipping (Sprite 0), mirrored placement ===
+    await tqv.write_byte_reg(0x01, 0b1)     # spr0_ctrl: flip enable
+    await ClockCycles(dut.clk, 1344*806)
+    # For a horizontal flip, the leftmost set pixel should show up mirrored
+    expected_flipped_sx = 45 * scale + (7-0) * scale  # originally col=0, now col=7
+    found_flip = False
+    for _ in range(1344 * 806):
+        await RisingEdge(dut.clk)
+        rgb = dut.uo_out.value.integer & 0x3F
+        h = dut.h_cnt.value.integer
+        v = dut.v_cnt.value.integer
+        if rgb == 0x3F and v in range(center_sy, center_sy+scale) and h in range(expected_flipped_sx, expected_flipped_sx+scale):
+            found_flip = True
+            break
+    assert found_flip, "Sprite 0 flipped pixel not rendered at expected mirrored XGA location!"
 
-    # Test the interrupt, generated when ui_in[6] goes high
-    dut.ui_in[6].value = 1
-    await ClockCycles(dut.clk, 1)
-    dut.ui_in[6].value = 0
+    # === Test interrupt ===
+    # Enable IRQ, wait for vsync
+    await tqv.write_word_reg(0x00, 0b11)   # [1]=irq_enable, [0]=stream_enable, [2]=irq clear
+    await ClockCycles(dut.clk, 1344*2)
+    assert await tqv.is_interrupt_asserted(), "IRQ not asserted after vsync!"
 
-    # Interrupt asserted
-    await ClockCycles(dut.clk, 3)
-    assert await tqv.is_interrupt_asserted()
+    # Clear IRQ using W1C (write 1 to bit2)
+    await tqv.write_word_reg(0x00, 0b100) # should clear irqs
+    await ClockCycles(dut.clk, 5)
+    assert not await tqv.is_interrupt_asserted(), "IRQ did not clear with W1C!"
 
-    # Interrupt doesn't clear
-    await ClockCycles(dut.clk, 10)
-    assert await tqv.is_interrupt_asserted()
-    
-    # Write bottom bit of address 8 high to clear
-    await tqv.write_byte_reg(8, 1)
-    assert not await tqv.is_interrupt_asserted()
+    # === Timing: check frame counter increments predictably (bonus) ===
+    old_vs = int(dut.vsync_r.value)
+    vcnt = 0
+    for _ in range(10000):
+        await RisingEdge(dut.clk)
+        new_vs = int(dut.vsync_r.value)
+        if not old_vs and new_vs:
+            vcnt += 1
+        old_vs = new_vs
+    # There should be at least one VSYNC edge over 1344*806 clocks @ 64MHz
+    assert vcnt >= 1, "VSYNC was not produced in XGA timing."
+
+    dut._log.info("All XGA sprite and peripheral features verified!")
