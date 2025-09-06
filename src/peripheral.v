@@ -59,7 +59,7 @@ module tqvp_example (
                 spr0_ctrl <= data_in[2:0]; // palette:1:0, flip:2
             if (write_any && (address == 6'h02))
                 spr1_ctrl <= data_in[2:0];
-            if (!control_reg && write_16) begin // only config when not streaming
+            if (!control_reg[0] && write_16) begin // only config when not streaming
                 case (address)
                     6'h04: begin spr0_x <= data_in[7:0]; spr0_y <= data_in[15:8]; end
                     6'h06: spr0_bmp[15:0]    <= data_in[15:0];
