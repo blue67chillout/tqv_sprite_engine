@@ -44,7 +44,7 @@ module tqvp_example (
     // -----------------------------
     // Compact registers
     // -----------------------------
-    reg [7:0]  control_reg;   // [0]=stream_enable, [1]=vsync_irq_en, [2]=IRQ flag (readback from irq_flag)
+    reg [2:0]  control_reg;   // [0]=stream_enable, [1]=vsync_irq_en, [2]=IRQ flag (readback from irq_flag)
     reg        irq_flag;
 
     reg [7:0]  spr0_x;
@@ -62,16 +62,14 @@ module tqvp_example (
     // -----------------------------
     always @(posedge clk ) begin
         if (!rst_n) begin
-            control_reg <= 8'h00;
+            control_reg <= 3'd00;
             irq_flag    <= 1'b0;
-
             spr0_x <= 8'h00; spr0_y <= 8'h00;
             spr1_x <= 8'h00; spr1_y <= 8'h00;
             spr0_bmp <= 64'h0;
             spr1_bmp <= 64'h0;
         end else begin
-            control_reg <= 8'd0 ;
-            irq_flag <= 0 ;
+
             // CONTROL at address 0x00: low byte used; allow clearing IRQ by writing bit2=1
             if (write_any && (address == 6'h00)) begin
                 control_reg[2:0] <= data_in[2:0]; // keep only bits 0..1 writable here
@@ -118,7 +116,7 @@ module tqvp_example (
     // -----------------------------
     always @(*) begin
         case (address)
-            6'h00: data_out = {24'h0, control_reg }; // bit2 shows irq_flag
+            6'h00: data_out = {29'h0, control_reg }; // bit2 shows irq_flag
 
             6'h04: data_out = {16'h0, spr0_y, spr0_x};
             6'h06: data_out = {16'h0, spr0_bmp[15:0]};
