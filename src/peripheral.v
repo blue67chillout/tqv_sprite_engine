@@ -187,14 +187,14 @@ module tqvp_example (
             end
 
             // VSYNC rising detection - set irq_flag if irq enabled
-            if (control_reg[1] && (!last_vsync) && vsync_r) begin
-                    irq_flag <= 1'b1;
-                if (control_reg[2]) begin
-                    irq_flag <= 1'b0 ;
-                end
-            end
+            // if (control_reg[1] && (!last_vsync) && vsync_r) begin
+            //         irq_flag <= 1'b1;
+            //     if (control_reg[2]) begin
+            //         irq_flag <= 1'b0 ;
+            //     end
+            // end
             
-            last_vsync <= vsync_r;
+            // last_vsync <= vsync_r;
         end
     end
 
