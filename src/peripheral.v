@@ -46,45 +46,59 @@ module tqvp_example (
     reg irq_flag;
 
     // --- Register Write Handling
-    always @(posedge clk) begin
-        if (!rst_n) begin
-            control_reg <= 3'd0; spr0_ctrl <= 3'd0; spr1_ctrl <= 3'd0;
-            spr0_x <= 0; spr0_y <= 0;
-            spr1_x <= 0; spr1_y <= 0;
-            spr0_bmp <= 144'd0; spr1_bmp <= 144'd0;
-        end else begin
-            if (write_any && (address == 6'h00))
-                control_reg[2:0] <= data_in[2:0];
-            if (write_any && (address == 6'h01))
-                spr0_ctrl <= data_in[2:0]; // palette:1:0, flip:2
-            if (write_any && (address == 6'h02))
-                spr1_ctrl <= data_in[2:0];
-            if (!control_reg[0] && write_16) begin // only config when not streaming
-                case (address)
-                    6'h04: begin spr0_x <= data_in[7:0]; spr0_y <= data_in[15:8]; end
-                    6'h06: spr0_bmp[15:0]    <= data_in[15:0];
-                    6'h08: spr0_bmp[31:16]   <= data_in[15:0];
-                    6'h0A: spr0_bmp[47:32]   <= data_in[15:0];
-                    6'h0C: spr0_bmp[63:48]   <= data_in[15:0];
-                    6'h0E: spr0_bmp[79:64]   <= data_in[15:0];
-                    6'h10: spr0_bmp[95:80]   <= data_in[15:0];
-                    6'h12: spr0_bmp[111:96]  <= data_in[15:0];
-                    6'h14: spr0_bmp[127:112] <= data_in[15:0];
-                    6'h16: spr0_bmp[143:128] <= data_in[15:0];
-                    6'h1A: begin spr1_x <= data_in[7:0]; spr1_y <= data_in[15:8]; end
-                    6'h1C: spr1_bmp[15:0]    <= data_in[15:0];
-                    6'h1E: spr1_bmp[31:16]   <= data_in[15:0];
-                    6'h20: spr1_bmp[47:32]   <= data_in[15:0];
-                    6'h22: spr1_bmp[63:48]   <= data_in[15:0];
-                    6'h24: spr1_bmp[79:64]   <= data_in[15:0];
-                    6'h26: spr1_bmp[95:80]   <= data_in[15:0];
-                    6'h28: spr1_bmp[111:96]  <= data_in[15:0];
-                    6'h2A: spr1_bmp[127:112] <= data_in[15:0];
-                    6'h2C: spr1_bmp[143:128] <= data_in[15:0];
-                endcase
-            end
+// Sprite registers for shadow/write
+reg [7:0] spr0_xw, spr0_yw, spr1_xw, spr1_yw;
+
+// Write shadow registers
+always @(posedge clk) begin
+    if (!rst_n) begin
+        control_reg <= 3'd0;
+        spr0_ctrl <= 3'd0;
+        spr1_ctrl <= 3'd0;
+        spr0_xw <= 8'd0; spr0_yw <= 8'd0;
+        spr1_xw <= 8'd0; spr1_yw <= 8'd0;
+        spr0_bmp <= 144'd0;
+        spr1_bmp <= 144'd0;
+    end else begin
+        if (write_any && (address == 6'h00))
+            control_reg[2:0] <= data_in[2:0];
+        if (write_any && (address == 6'h01))
+            spr0_ctrl <= data_in[2:0];
+        if (write_any && (address == 6'h02))
+            spr1_ctrl <= data_in[2:0];
+        if (!control_reg[0] && write_16) begin
+            case (address)
+                6'h04: begin
+                    spr0_xw <= data_in[7:0];
+                    spr0_yw <= data_in[15:8];
+                end
+                6'h06: spr0_bmp[15:0]    <= data_in[15:0];
+                6'h08: spr0_bmp[31:16]   <= data_in[15:0];
+                6'h0A: spr0_bmp[47:32]   <= data_in[15:0];
+                6'h0C: spr0_bmp[63:48]   <= data_in[15:0];
+                6'h0E: spr0_bmp[79:64]   <= data_in[15:0];
+                6'h10: spr0_bmp[95:80]   <= data_in[15:0];
+                6'h12: spr0_bmp[111:96]  <= data_in[15:0];
+                6'h14: spr0_bmp[127:112] <= data_in[15:0];
+                6'h16: spr0_bmp[143:128] <= data_in[15:0];
+                6'h1A: begin
+                    spr1_xw <= data_in[7:0];
+                    spr1_yw <= data_in[15:8];
+                end
+                6'h1C: spr1_bmp[15:0]    <= data_in[15:0];
+                6'h1E: spr1_bmp[31:16]   <= data_in[15:0];
+                6'h20: spr1_bmp[47:32]   <= data_in[15:0];
+                6'h22: spr1_bmp[63:48]   <= data_in[15:0];
+                6'h24: spr1_bmp[79:64]   <= data_in[15:0];
+                6'h26: spr1_bmp[95:80]   <= data_in[15:0];
+                6'h28: spr1_bmp[111:96]  <= data_in[15:0];
+                6'h2A: spr1_bmp[127:112] <= data_in[15:0];
+                6'h2C: spr1_bmp[143:128] <= data_in[15:0];
+                default: ;
+            endcase
         end
     end
+end
 
     // --- Readback
     always @(*) begin
