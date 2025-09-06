@@ -171,7 +171,31 @@ module tqvp_example (
     wire [5:0] s1_rgb = get_palette(s1_palette);
 
     // --- Output composition and prioritization, for example:
-    wire sprite1_on = ...; // logic as above for s1
+    wire [7:0] s1_dx     = lx - spr1_x;
+    wire [7:0] s1_dy     = ly - spr1_y;
+    wire s1_in           = (lx >= spr1_x) && (lx < spr1_x+12) && (ly >= spr1_y) && (ly < spr1_y+12);
+    wire [3:0] s1_col    = s1_dx[3:0];
+    wire [3:0] s1_row    = s1_dy[3:0];
+    wire [7:0] s1_idx    = {s1_row[3:0], (spr1_ctrl[2] ? (11-s1_col[3:0]) : s1_col[3:0])};
+    wire s1_pixel        = video_active && s1_in && spr1_bmp[s1_idx];
+
+    // Sprite 1 flip/mirror (optional): Enable if you want mirrored for sprite1 too, otherwise omit
+    wire s1_flip_enable  = spr1_ctrl[2];
+    wire s1_m_in         = (lx >= spr1_x+12) && (lx < spr1_x+24) && (ly >= spr1_y) && (ly < spr1_y+12);
+    wire [3:0] s1_m_col  = lx - (spr1_x + 12);
+    wire [7:0] s1_m_idx  = {s1_row[3:0], (s1_flip_enable ? (11-s1_m_col[3:0]) : s1_m_col[3:0])};
+    wire s1_m_pixel      = video_active && s1_flip_enable && s1_m_in && spr1_bmp[s1_m_idx];
+
+    // --- Output composition (priority: sprite1 > sprite0 > mirror0)
+    wire sprite1_on      = s1_pixel || s1_m_pixel;
+    wire sprite0_on      = s0_pixel || s0_m_pixel;
+
+    wire [5:0] mirror0_rgb = s0_rgb;
+    wire [5:0] sprite0_rgb = s0_pixel ? s0_rgb : (s0_m_pixel ? mirror0_rgb : 6'b000000);
+    wire [5:0] sprite1_rgb = s1_pixel ? s1_rgb : (s1_m_pixel ? s1_rgb : 6'b000000);
+
+    wire [5:0] final_rgb = sprite1_on ? sprite1_rgb :
+                           (sprite0_on ? sprite0_rgb : 6'b000000);
     // Priority: sprite1 > sprite0 > mirror
     wire [5:0] final_rgb = sprite1_on ? s1_rgb : (s0_pixel ? s0_rgb : (s0_m_pixel ? s0_rgb : 6'b0));
     assign uo_out = {vsync_r, hsync_r, final_rgb};
