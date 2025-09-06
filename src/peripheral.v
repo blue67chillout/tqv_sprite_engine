@@ -133,8 +133,65 @@ module tqvp_example (
         endcase
     endfunction
 
-    // --- XGA timing logic (unchanged): h_cnt, v_cnt, hsync_r, vsync_r, visible_r, etc.
-    // --- IRQ logic as in your base
+    // -----------------------------
+    // XGA Timing (1024x768 @60), gated by control_reg[0] (stream enable)
+    // -----------------------------
+    localparam H_ACTIVE = 1024;
+    localparam H_FP     = 24;
+    localparam H_SYNC   = 136;
+    localparam H_BP     = 160;
+    localparam H_TOTAL  = 1344;
+    localparam V_ACTIVE = 768;
+    localparam V_FP     = 3;
+    localparam V_SYNC   = 6;
+    localparam V_BP     = 29;
+    localparam V_TOTAL  = 806;
+    reg [10:0] h_cnt;
+    reg [9:0]  v_cnt;
+    reg        hsync_r;
+    reg        vsync_r;
+    reg        visible_r;
+    reg        last_vsync;
+    always @(posedge clk ) begin
+        if (!rst_n) begin
+            h_cnt <= 11'd0;
+            v_cnt <= 10'd0;
+            hsync_r <= 1'b0;
+            vsync_r <= 1'b0;
+            visible_r <= 1'b0;
+            last_vsync <= 1'b0;
+            irq_flag <= 1'b0 ;
+        end else begin
+            if (control_reg[0]) begin
+                if (h_cnt == H_TOTAL - 1) begin
+                    h_cnt <= 11'd0;
+                    if (v_cnt == V_TOTAL - 1)
+                        v_cnt <= 10'd0;
+                    else
+                        v_cnt <= v_cnt + 10'd1;
+                end else begin
+                    h_cnt <= h_cnt + 11'd1;
+                end
+                hsync_r <= (h_cnt >= (H_ACTIVE + H_FP)) && (h_cnt < (H_ACTIVE + H_FP + H_SYNC));
+                vsync_r <= (v_cnt >= (V_ACTIVE + V_FP)) && (v_cnt < (V_ACTIVE + V_FP + V_SYNC));
+                visible_r <= (h_cnt < H_ACTIVE) && (v_cnt < V_ACTIVE);
+            end else begin
+                // streaming disabled: keep counters frozen and blank outputs
+                hsync_r <= 1'b0;
+                vsync_r <= 1'b0;
+                visible_r <= 1'b0;
+            end
+            //VSYNC rising detection - set irq_flag if irq enabled
+            if (control_reg[1] && (!last_vsync) && vsync_r) begin
+                    irq_flag <= 1'b1;
+                if (control_reg[2]) begin
+                    irq_flag <= 1'b0 ;
+                end
+            end
+            
+            last_vsync <= vsync_r;
+        end
+    end
 
     // --- Rendering logic
     wire [9:0] pix_x = h_cnt[9:0];
