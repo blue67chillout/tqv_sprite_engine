@@ -40,7 +40,7 @@ module tqvp_example (
 
     // --- Registers
     reg [2:0] control_reg;
-    reg [2:0] spr0_ctrl, spr1_ctrl;         // [1:0]=palette_sel, =flip
+    reg  spr0_ctrl, spr1_ctrl;         // [1:0]=palette_sel, =flip
     reg [7:0] spr0_x, spr0_y, spr1_x, spr1_y;
     reg [143:0] spr0_bmp, spr1_bmp;
     reg irq_flag;
@@ -62,9 +62,9 @@ always @(posedge clk) begin
             if (write_any && (address == 6'h00))
                 control_reg <= data_in[2:0];
             if (write_any && (address == 6'h01))
-                spr0_ctrl <= data_in[2:0];
-            if (write_any && (address == 6'h02))
-                spr1_ctrl <= data_in[2:0];
+                 {spr0_ctrl,spr1_ctrl} <= data_in[2:0];
+            // if (write_any && (address == 6'h02))
+            //     spr1_ctrl <= data_in[2:0];
             if (!control_reg[0] && write_16) begin
                 case (address)
                     6'h04: begin
@@ -130,21 +130,21 @@ always @(posedge clk) begin
     end
 
     //--- Palette Table: 4 entries × (R,G,B) 2b each
-    localparam [23:0] PALETTE = {
-      6'b11_11_11, // white
-      6'b11_00_00, // red
-      6'b00_11_00, // green
-      6'b00_00_11  // blue
-    };
+    // localparam [23:0] PALETTE = {
+    //   6'b11_11_11, // white
+    //   6'b11_00_00, // red
+    //   6'b00_11_00, // green
+    //   6'b00_00_11  // blue
+    // };
 
-    function [5:0] get_palette(input [1:0] sel);
-        case(sel)
-            2'd0: get_palette = PALETTE[5:0];
-            2'd1: get_palette = PALETTE[11:6];
-            2'd2: get_palette = PALETTE[17:12];
-            2'd3: get_palette = PALETTE[23:18];
-        endcase
-    endfunction
+    // function [5:0] get_palette(input [1:0] sel);
+    //     case(sel)
+    //         2'd0: get_palette = PALETTE[5:0];
+    //         2'd1: get_palette = PALETTE[11:6];
+    //         2'd2: get_palette = PALETTE[17:12];
+    //         2'd3: get_palette = PALETTE[23:18];
+    //     endcase
+    // endfunction
 
     // -----------------------------
     // XGA Timing (1024x768 @60), gated by control_reg[0] (stream enable)
@@ -238,7 +238,7 @@ end
     wire s0_pixel_nf     = video_active && s0_in && !spr0_ctrl[2] && spr0_bmp[s0_idx_nf];
     
     // -- Sprite 0 flip & mirror (if enabled)
-    wire s0_flip         = spr0_ctrl[2];
+    wire s0_flip         = spr0_ctrl;
     wire s0_in_flip      = s0_flip && s0_in;
     wire [3:0] s0_col_f  = 11 - (lx - spr0_x);
     wire [7:0] s0_idx_f  = {s0_row, s0_col_f};
@@ -265,7 +265,7 @@ end
     wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl[2] && spr1_bmp[s1_idx_nf];
     
     // -- Sprite 1 flip & mirror (if enabled)
-    wire s1_flip         = spr1_ctrl[2];
+    wire s1_flip         = spr1_ctrl;
     wire s1_in_flip      = s1_flip && s1_in;
     wire [3:0] s1_col_f  = 11 - (lx - spr1_x);
     wire [7:0] s1_idx_f  = {s1_row, s1_col_f};
@@ -285,11 +285,11 @@ end
     wire s1_m_pixel    = s1_m_pixel_nf || s1_m_pixel_f;
     
     // -- Palette/color select
-    wire [5:0] s0_rgb = get_palette(spr0_ctrl[1:0]);
-    wire [5:0] s1_rgb = get_palette(spr1_ctrl[1:0]);
+    // wire [5:0] s0_rgb = get_palette(spr0_ctrl[1:0]);
+    // wire [5:0] s1_rgb = get_palette(spr1_ctrl[1:0]);
 
-    // wire [5:0] s0_rgb = 6'b111111 ;
-    // wire [5:0] s1_rgb = 6'b111111 ;
+    wire [5:0] s0_rgb = 6'b111111 ;
+    wire [5:0] s1_rgb = 6'b111111 ;
     
     // -- Output composition, priority: s1 > s0 > mirror0 background
     wire [5:0] final_rgb =
