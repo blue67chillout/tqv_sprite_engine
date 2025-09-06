@@ -193,69 +193,71 @@ module tqvp_example (
         end
     end
 
-    // --- Rendering logic
-    wire [9:0] pix_x = h_cnt[9:0];
-    wire [9:0] pix_y = v_cnt[9:0];
-    wire video_active = visible_r; 
-    wire [7:0] lx = pix_x[9:2];
-    wire [7:0] ly = pix_y[9:2];
+    // -- Sprite 0 non-flip
+wire s0_in           = (lx >= spr0_x) && (lx < spr0_x+12) && (ly >= spr0_y) && (ly < spr0_y+12);
+wire [3:0] s0_col    = lx - spr0_x;
+wire [3:0] s0_row    = ly - spr0_y;
+wire [7:0] s0_idx_nf = {s0_row, s0_col}; // non-flip index
+wire s0_pixel_nf     = video_active && s0_in && !spr0_ctrl[2] && spr0_bmp[s0_idx_nf];
 
-    // Sprite 0
-    wire [7:0] s0_dx = lx - spr0_x, s0_dy = ly - spr0_y;
-    wire s0_in = (lx >= spr0_x) && (lx < spr0_x+12) && (ly >= spr0_y) && (ly < spr0_y+12);
-    wire [3:0] s0_col = s0_dx[3:0];  // for 12
-    wire [3:0] s0_row = s0_dy[3:0];
-    wire [7:0] s0_idx = {s0_row[3:0], s0_col[3:0]}; // gives up to 16x16 but only [0:143] valid
+// -- Sprite 0 flip & mirror (if enabled)
+wire s0_flip         = spr0_ctrl[2];
+wire s0_in_flip      = s0_flip && s0_in;
+wire [3:0] s0_col_f  = 11 - (lx - spr0_x);
+wire [7:0] s0_idx_f  = {s0_row, s0_col_f};
+wire s0_pixel_f      = video_active && s0_in_flip && spr0_bmp[s0_idx_f];
 
-    // Y-flip logic
-    wire s0_flip = spr0_ctrl;
-    wire [7:0] s0_cmp_idx  = {s0_row[3:0], (s0_flip ? (11 - s0_col[3:0]) : s0_col[3:0])};
-    wire s0_pixel = video_active && s0_in && spr0_bmp[s0_cmp_idx];
+// -- Sprite 0 mirror (shows at x+12 when flip enabled)
+wire s0_m_in         = (lx >= spr0_x+12) && (lx < spr0_x+24) && (ly >= spr0_y) && (ly < spr0_y+12);
+wire [3:0] s0_m_col  = lx - (spr0_x+12);
+wire [7:0] s0_m_idx_nf = {s0_row, s0_m_col};
+wire [3:0] s0_m_col_f  = 11 - s0_m_col;
+wire [7:0] s0_m_idx_f  = {s0_row, s0_m_col_f};
+wire s0_m_pixel_nf  = video_active && s0_m_in && !spr0_ctrl[2] && spr0_bmp[s0_m_idx_nf];
+wire s0_m_pixel_f   = video_active && s0_m_in && s0_flip && spr0_bmp[s0_m_idx_f];
 
-    // Optional: Mirror copy at X+12
-    wire s0_m_in = (lx >= spr0_x+12) && (lx < spr0_x+24) && (ly >= spr0_y) && (ly < spr0_y+12);
-    wire [3:0] s0_m_col = lx - (spr0_x + 12);
-    wire [7:0] s0_m_idx = {s0_row[3:0], (s0_flip ? (11-s0_m_col[3:0]) : s0_m_col[3:0])};
-    wire s0_flip_enable = spr0_ctrl;
-    wire s0_m_pixel = video_active && s0_flip_enable && s0_m_in && spr0_bmp[s0_m_idx];
+// Combine sprite 0 result (flip, non-flip, mirror)
+wire s0_pixel      = s0_pixel_nf || s0_pixel_f;
+wire s0_m_pixel    = s0_m_pixel_nf || s0_m_pixel_f;
 
-    // Same logic for sprite 1 (use respective registers)
+// -- Sprite 1 non-flip
+wire s1_in           = (lx >= spr1_x) && (lx < spr1_x+12) && (ly >= spr1_y) && (ly < spr1_y+12);
+wire [3:0] s1_col    = lx - spr1_x;
+wire [3:0] s1_row    = ly - spr1_y;
+wire [7:0] s1_idx_nf = {s1_row, s1_col}; // non-flip index
+wire s1_pixel_nf     = video_active && s1_in && !spr1_ctrl[2] && spr1_bmp[s1_idx_nf];
 
-    // --- Palette
-    wire [1:0] s0_palette = spr0_ctrl[1:0];
-    wire [5:0] s0_rgb = get_palette(s0_palette);
-    wire [1:0] s1_palette = spr1_ctrl[1:0];
-    wire [5:0] s1_rgb = get_palette(s1_palette);
+// -- Sprite 1 flip & mirror (if enabled)
+wire s1_flip         = spr1_ctrl[2];
+wire s1_in_flip      = s1_flip && s1_in;
+wire [3:0] s1_col_f  = 11 - (lx - spr1_x);
+wire [7:0] s1_idx_f  = {s1_row, s1_col_f};
+wire s1_pixel_f      = video_active && s1_in_flip && spr1_bmp[s1_idx_f];
 
-    // --- Output composition and prioritization, for example:
-    wire [7:0] s1_dx     = lx - spr1_x;
-    wire [7:0] s1_dy     = ly - spr1_y;
-    wire s1_in           = (lx >= spr1_x) && (lx < spr1_x+12) && (ly >= spr1_y) && (ly < spr1_y+12);
-    wire [3:0] s1_col    = s1_dx[3:0];
-    wire [3:0] s1_row    = s1_dy[3:0];
-    wire [7:0] s1_idx    = {s1_row[3:0], (spr1_ctrl[2] ? (11-s1_col[3:0]) : s1_col[3:0])};
-    wire s1_pixel        = video_active && s1_in && spr1_bmp[s1_idx];
+// -- Sprite 1 mirror (shows at x+12 when flip enabled)
+wire s1_m_in         = (lx >= spr1_x+12) && (lx < spr1_x+24) && (ly >= spr1_y) && (ly < spr1_y+12);
+wire [3:0] s1_m_col  = lx - (spr1_x+12);
+wire [7:0] s1_m_idx_nf = {s1_row, s1_m_col};
+wire [3:0] s1_m_col_f  = 11 - s1_m_col;
+wire [7:0] s1_m_idx_f  = {s1_row, s1_m_col_f};
+wire s1_m_pixel_nf  = video_active && s1_m_in && !spr1_ctrl[2] && spr1_bmp[s1_m_idx_nf];
+wire s1_m_pixel_f   = video_active && s1_m_in && s1_flip && spr1_bmp[s1_m_idx_f];
 
-    // Sprite 1 flip/mirror (optional): Enable if you want mirrored for sprite1 too, otherwise omit
-    wire s1_flip_enable  = spr1_ctrl[2];
-    wire s1_m_in         = (lx >= spr1_x+12) && (lx < spr1_x+24) && (ly >= spr1_y) && (ly < spr1_y+12);
-    wire [3:0] s1_m_col  = lx - (spr1_x + 12);
-    wire [7:0] s1_m_idx  = {s1_row[3:0], (s1_flip_enable ? (11-s1_m_col[3:0]) : s1_m_col[3:0])};
-    wire s1_m_pixel      = video_active && s1_flip_enable && s1_m_in && spr1_bmp[s1_m_idx];
+// Combine sprite 1 result (flip, non-flip, mirror)
+wire s1_pixel      = s1_pixel_nf || s1_pixel_f;
+wire s1_m_pixel    = s1_m_pixel_nf || s1_m_pixel_f;
 
-    // --- Output composition (priority: sprite1 > sprite0 > mirror0)
-    wire sprite1_on      = s1_pixel || s1_m_pixel;
-    wire sprite0_on      = s0_pixel || s0_m_pixel;
+// -- Palette/color select
+wire [5:0] s0_rgb = get_palette(spr0_ctrl[1:0]);
+wire [5:0] s1_rgb = get_palette(spr1_ctrl[1:0]);
 
-    wire [5:0] mirror0_rgb = s0_rgb;
-    wire [5:0] sprite0_rgb = s0_pixel ? s0_rgb : (s0_m_pixel ? mirror0_rgb : 6'b000000);
-    wire [5:0] sprite1_rgb = s1_pixel ? s1_rgb : (s1_m_pixel ? s1_rgb : 6'b000000);
-
-    wire [5:0] final_rgb = sprite1_on ? sprite1_rgb :
-                           (sprite0_on ? sprite0_rgb : 6'b000000);
-    // Priority: sprite1 > sprite0 > mirror
-    wire [5:0] final_rgb = sprite1_on ? s1_rgb : (s0_pixel ? s0_rgb : (s0_m_pixel ? s0_rgb : 6'b0));
-    assign uo_out = {vsync_r, hsync_r, final_rgb};
+// -- Output composition, priority: s1 > s0 > mirror0 background
+wire [5:0] final_rgb =
+      s1_pixel     ? s1_rgb :
+      s1_m_pixel   ? s1_rgb :
+      s0_pixel     ? s0_rgb :
+      s0_m_pixel   ? s0_rgb :
+                    6'b000000;
 
     assign user_interrupt = irq_flag;
     wire _unused_ok = &{1'b0, ui_in, data_read_n};
