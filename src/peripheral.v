@@ -63,7 +63,6 @@ module tqvp_example (
     always @(posedge clk ) begin
         if (!rst_n) begin
             control_reg <= 3'd00;
-            irq_flag    <= 1'b0;
             spr0_x <= 8'h00; spr0_y <= 8'h00;
             spr1_x <= 8'h00; spr1_y <= 8'h00;
             spr0_bmp <= 64'h0;
@@ -164,6 +163,7 @@ module tqvp_example (
             vsync_r <= 1'b0;
             visible_r <= 1'b0;
             last_vsync <= 1'b0;
+            irq_flag <= 1'b0 ;
         end else begin
             if (control_reg[0]) begin
                 if (h_cnt == H_TOTAL - 1) begin
@@ -186,15 +186,15 @@ module tqvp_example (
                 visible_r <= 1'b0;
             end
 
-            // VSYNC rising detection - set irq_flag if irq enabled
-            // if (control_reg[1] && (!last_vsync) && vsync_r) begin
-            //         irq_flag <= 1'b1;
-            //     if (control_reg[2]) begin
-            //         irq_flag <= 1'b0 ;
-            //     end
-            // end
+            //VSYNC rising detection - set irq_flag if irq enabled
+            if (control_reg[1] && (!last_vsync) && vsync_r) begin
+                    irq_flag <= 1'b1;
+                if (control_reg[2]) begin
+                    irq_flag <= 1'b0 ;
+                end
+            end
             
-            // last_vsync <= vsync_r;
+            last_vsync <= vsync_r;
         end
     end
 
